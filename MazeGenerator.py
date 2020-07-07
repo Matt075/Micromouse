@@ -228,5 +228,15 @@ def Maze_Creation():
     
     maze_list[8][8].Bottom = False
     maze_list[8][8].Left = False
+    
+    #Sets right walls equal to cells to the right left walls, 
+    #Sets Top walls equal to cells above below walls
+    for i in range(16):
+        for j in range(16):
+            if i+1 < 16:
+                maze_list[i+1][j].Left = maze_list[i][j].Right 
+            if j+1 <16:
+                maze_list[i][j+1].Bottom = maze_list[i][j].Top
+            maze_list[i][j].Checked = False #Marks cells that were marked true from mazecreation algorithm back to false
    
     return(maze_list)
