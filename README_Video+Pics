@@ -1,0 +1,15 @@
+**Brief Explanation**
+VIDEO:
+- Moves cell to cell till it reaches one of the four-grouped middle cells. 
+        **(Only has knowledge of visited,  and adjacent cells)**
+- Moves roughly based on Pythagorean distance to center cells
+- 'X's denote moves along dead end paths that algorithm chose at first
+        the big number change at 23->43 in video represents number of moves algorithm
+        takes to explore, and backtrack from dead end path
+- Repeats same maze twice, in the second run it utilizes knowledge form first run
+        in order to take more efficient route. 
+
+PCITURES:
+All 3 pictures feature the same maze at different steps of execution.
+Initial Maze -> First_Solve -> Efficient_Solve 
+:D
