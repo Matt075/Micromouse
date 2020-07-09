@@ -1,346 +1,185 @@
-# -*- coding: utf-8 -*-
 """
-Created on Fri Mar  6 16:40:29 2020
+Created on Fri Mar  23 14:20:12 2020
 @author: Matt Burns
+Description: Flooding algorithm designed as a sandbox for testing the logic for 
+physical Micromouse movement. 
+
+1. Creates a randomized generated maze from Maze.py
+
+2. Does initial run assuming no knowledge about the maze other than what has been visible
+to the theoretical robot as it moves from cell to cell. Moves from cell to cell based 
+upon its lowest pythagonal distance to one of the 4 center cells, prioritizing cells 
+that it has yet to visit. If it encounters a route that leads to a dead end it marks 
+all cells along the route as unavailable ('X') and uses its seen (but not explored)
+neighbors stack to return to the last position that has an unexplored path. Once it 
+reaches one of the four middle cells the first run terminates and proceeds into the 
+optimized run.
+
+3. Performs optimized run utilizing the same algorithm as before, only it learned from
+the first run and knows not to explore the paths where it knows it does not lead to the 
+center position. In this way it optimizes the number of steps needed to achieve the "win"
+condition. 
 """
+
 import time
-import random
-import math
-from MazeGenerator import Maze_Creation
+from Maze import Maze
 
-class Cell():
-    x = 0
-    y = 0
-    Available = True
-    Checked = False
-    Top = True
-    Bottom = True
-    Left = True
-    Right = True
-    Distance = 0
-    Count = 10000
-    Neighbor_X = 0
-    Neighbor_Y = 0
-    Neighbor_Count = 0
+start_time = time.time()
+
+def advance():
+    """ Advance to the available neighbor with the lowest distance from the
+    four center cells """
+    global i, j, counter
+    shortest = 300
+    path = ""
+    if (not Maze.cell(i, j).east_wall and not Maze.cell(i+1, j).checked and Maze.cell(i+1, j).available
+            and Maze.cell(i+1, j).available):
+        shortest = Maze.cell(i+1, j).distance
+        path = "r"
+    if (not Maze.cell(i, j).west_wall and not Maze.cell(i-1, j).checked and Maze.cell(i-1, j).available
+            and Maze.cell(i-1, j).available
+            and Maze.cell(i-1, j).distance < shortest):
+        shortest = Maze.cell(i-1, j).distance
+        path = "l"
+    if (not Maze.cell(i, j).north_wall and not Maze.cell(i, j+1).checked and Maze.cell(i, j +1).available
+            and Maze.cell(i, j+1).available
+            and Maze.cell(i, j+1).distance < shortest):
+        shortest = Maze.cell(i, j+1).distance
+        path = "u"
+    if (not Maze.cell(i, j).south_wall and not Maze.cell(i, j-1).checked and Maze.cell(i, j -1).available
+            and Maze.cell(i, j-1).available
+            and Maze.cell(i, j-1).distance < shortest):
+        path = "d"
+
+    if path == "u":
+        j += 1
+    elif path == "d":
+        j -= 1
+    elif path == "r":
+        i += 1
+    else:
+        i -= 1
+    counter += 1
+
+    # check if this area is available (after virtually moving to it)
+    
+    if not check_area():
+        if path == "u":
+            j -= 1
+        elif path == "d":
+            j += 1
+        elif path == "r":
+            i -= 1
+        else:
+            i += 1
+        counter -= 1
+
+    Maze.cell(i, j).set_checked(True)
+    Maze.cell(i, j).set_step(counter)
 
 
-"""Sets the distance for each cell in the maze"""
-def setDistance(list):
+def check_area():
+    """ This algorithm checks if an entire area is available without
+    physically searching it.
+    - When the robot first enters the area, the algorithm adds unchecked
+    adjacent cells to the list.
+    - The algorithm then virtually moves to the next cell in the list which
+    was added by the step above. The same process is repeated until either it
+    reaches the center cells (there IS a path to the center passing through
+    this area without intersecting older paths -->> this area is available),
+    or there is no adjacent unchecked cells (this area leads back to older
+    path or leads to nowhere).
+    - If the area is unavailable, the algorithm will mark all cells in this
+    area unavailable.
+    NOTE: Notice that this algorithm doesn't check or need to check about any
+    walls -->> No need to traverse the area. Its structure is actually quite
+    similar to available_neighbor
+    """
+    global counter
+    unchecked_list = [[i, j]]
+    unchecked_available = True
+    num = 0
+    while num < len(unchecked_list):
+        x = unchecked_list[num][0]
+        y = unchecked_list[num][1]
+        if Maze.cell(x, y).distance == 0 or not unchecked_available:
+            break
+        unchecked_available = False
+
+        if x < 15 and not Maze.cell(x+1, y).checked and Maze.cell(x+1, y).available:
+            unchecked_available = True
+
+            if [x+1, y] not in unchecked_list:
+                unchecked_list.append([x+1, y])
+
+        if x > 0 and not Maze.cell(x-1, y).checked and Maze.cell(x-1, y).available:
+            unchecked_available = True
+
+            if [x-1, y] not in unchecked_list:
+                unchecked_list.append([x-1, y])
+
+        if y < 15 and not Maze.cell(x, y+1).checked and Maze.cell(x, y+1).available:
+            unchecked_available = True
+
+            if [x, y+1] not in unchecked_list:
+                unchecked_list.append([x, y+1])
+
+        if y > 0 and not Maze.cell(x, y-1).checked and Maze.cell(x, y-1).available:
+            unchecked_available = True
+
+            if [x, y-1] not in unchecked_list:
+                unchecked_list.append([x, y-1])
+        num += 1
+ 
+
+        
+
+    # If the loop successfully reaches the end of the list, it means that
+    # there is no more adjacent unchecked cell -->> Unavailable area
+    if num == len(unchecked_list):
+        for item in unchecked_list:
+            Maze.cell(item[0], item[1]).set_unavailable()
+            counter = counter +1
+        return False
+    else:
+        return True
+
+
+# i = x coordinate, j = y coordinate
+# - counter counts the steps taken after each move
+for q in range(2):
+    
     for i in range(16):
         for j in range(16):
-            a = round(math.sqrt((7-i)*(7-i) + (7-j)*(7-j)), 2)
-            b = round(math.sqrt((7-i)*(7-i) + (8-j)*(8-j)), 2)
-            c = round(math.sqrt((8-i)*(8-i) + (7-j)*(7-j)), 2)
-            d = round(math.sqrt((8-i)*(8-i) + (8-j)*(8-j)), 2)
-            list[i][j].Distance = min(a,b,c,d)
-            
-def checked(list):
-	return list.Checked
-	
-def upWall(list):
-	return list.Top
-
-def bottomWall(list):
-	return list.Bottom
-
-def leftWall(list):
-	return list.Left
-	
-def rightWall(list):
-	return list.Right
-
-def distToCenter(list):
-	return list.Count
-
-def available(list):
-	return list.Available
-
-def printMaze(mazeMap,counter,x,y):
-    #count =0
-    print("_____________________________________________________________________")
-    print("")
-    nextLine = ""
-    for k in range(16):
-        nextLine += ('-' * (len(str(counter)) + 2)) + '+'
-    print( '+' + nextLine)
-    for i in reversed(range(16)):
-        nextLine = '|'
-        for j in range(16):
-            #count = count +1
-            if not available(mazeMap[j][i]):
-                nextLine += (' ' + 'X' + (' ' * (len(str(counter)))))
-            elif checked(mazeMap[j][i]):
-                #nextLine += ' * '
-                nextLine += (' ' + str(maze_list[j][i].Count) + (' ' * ((int(len(str(counter)) - len(str(maze_list[j][i].Count))))+1)))
-            else:
-                nextLine += (' ' * (len(str(counter)) + 2))
-            if rightWall(mazeMap[j][i]):
-                nextLine += '|'
-            else:
-                nextLine += ' '
-        print(nextLine)       
-        nextLine = '+'
-        for j in range(16):
-            if bottomWall(mazeMap[j][i]):
-                nextLine += ('-' * (len(str(counter)) + 2)) + '+'
-            else:
-                nextLine += (' ' * (len(str(counter)) + 2)) +   '+'
-        print(nextLine)
-        
-"""
-Called after moving to an unvisited cell. 
-1. Checks if there is an adjacent cell that is accessible (No walls, and available),
-and unchecked.
-2. For each available move, if its not already in the stack then it will be added
-with information about the cell that added it to the stack (Neighbor_X,Y,Count)
-3. Otherwise if the cell was already in the stack then its neighbor information
-will be updated so that if it has to backtrack to that cell it will enter it from 
-the updated neighbor cell which is closer to the cell in the stack than its 
-previous neighbor. 
-"""
-def availableNeighbor(mazeMap,i,j):
-    neighbor = False
-    count = 0
-    if j < 15:
-        if upWall(mazeMap[i][j]) == False and mazeMap[i][j+1].Checked == False and mazeMap[i][j+1].Available == True:
-                neighbor = True
-                count = count +1
-                if (mazeMap[i][j+1] not in unvisited_neighbor):
-                    maze_list[i][j+1].Neighbor_X = maze_list[i][j].x
-                    maze_list[i][j+1].Neighbor_Y = maze_list[i][j].y
-                    maze_list[i][j+1].Neighbor_Count = counter
-                    unvisited_neighbor.append(mazeMap[i][j+1])
-                else:
-                    for k, item in (list(enumerate(unvisited_neighbor))):
-                        if (item.x == maze_list[i][j+1].x and item.y == maze_list[i][j+1].y):
-                            unvisited_neighbor[k].Neighbor_Count = counter
-                            unvisited_neighbor[k].Neighbor_X = maze_list[i][j].x
-                            unvisited_neighbor[k].Neighbor_Y = maze_list[i][j].y
-    if j > 0:
-        if bottomWall(mazeMap[i][j]) == False and mazeMap[i][j-1].Checked == False and mazeMap[i][j-1].Available == True:
-                neighbor = True
-                count = count +1
-                if (mazeMap[i][j-1] not in unvisited_neighbor):
-                    maze_list[i][j-1].Neighbor_X = maze_list[i][j].x
-                    maze_list[i][j-1].Neighbor_Y = maze_list[i][j].y
-                    maze_list[i][j-1].Neighbor_Count = counter
-                    unvisited_neighbor.append(mazeMap[i][j-1])
-                else:
-                    for k, item in (list(enumerate(unvisited_neighbor))):
-                        if (item.x == maze_list[i][j-1].x and item.y == maze_list[i][j-1].y):
-                            unvisited_neighbor[k].Neighbor_Count = counter
-                            unvisited_neighbor[k].Neighbor_X = maze_list[i][j].x
-                            unvisited_neighbor[k].Neighbor_Y = maze_list[i][j].y
-    if i > 0:
-        if leftWall(mazeMap[i][j]) == False and mazeMap[i-1][j].Checked == False and mazeMap[i-1][j].Available == True:
-                neighbor = True
-                count = count +1
-                if (mazeMap[i-1][j] not in unvisited_neighbor):
-                    maze_list[i-1][j].Neighbor_X = maze_list[i][j].x
-                    maze_list[i-1][j].Neighbor_Y = maze_list[i][j].y
-                    maze_list[i-1][j].Neighbor_Count = counter
-                    unvisited_neighbor.append(mazeMap[i-1][j])
-                else:
-                    for k, item in (list(enumerate(unvisited_neighbor))):
-                        if (item.x == maze_list[i-1][j].x and item.y == maze_list[i-1][j].y):
-                            unvisited_neighbor[k].Neighbor_Count = counter
-                            unvisited_neighbor[k].Neighbor_X = maze_list[i][j].x
-                            unvisited_neighbor[k].Neighbor_Y = maze_list[i][j].y
-    if i < 15:
-        if rightWall(mazeMap[i][j]) == False and mazeMap[i+1][j].Checked == False and mazeMap[i+1][j].Available == True:
-                neighbor = True
-                count = count +1
-                if (mazeMap[i+1][j] not in unvisited_neighbor):
-                    maze_list[i+1][j].Neighbor_X = maze_list[i][j].x
-                    maze_list[i+1][j].Neighbor_Y = maze_list[i][j].y
-                    maze_list[i+1][j].Neighbor_Count = counter
-                    unvisited_neighbor.append(mazeMap[i+1][j])
-                else:
-                    for k, item in (list(enumerate(unvisited_neighbor))):
-                        if (item.x == maze_list[i+1][j].x and item.y == maze_list[i+1][j].y):
-                            unvisited_neighbor[k].Neighbor_Count = counter
-                            unvisited_neighbor[k].Neighbor_X = maze_list[i][j].x
-                            unvisited_neighbor[k].Neighbor_Y = maze_list[i][j].y
-    return neighbor
-
-
-def setDestination(maze_list):
-    #Sets the inner cells to be empty
-    maze_list[7][7].Top = False
-    maze_list[7][7].Right = False
-    maze_list[7][8].Bottom = False
-    maze_list[7][8].Right = False
-    maze_list[8][7].Top = False
-    maze_list[8][7].Left = False
-    maze_list[8][8].Bottom = False
-    maze_list[8][8].Left = False
-    
-#[checked?, up, bottom, left, right, distance to centre, available for reentry?]
-
-"""For loop that runs through the maze solving algorithm twice, once using
-the fresh maze generated from the maze creation algorithm, the second iteration
-uses the information about the visited cells, and unavailable cells to solve the
-maze more efficiently."""
-
-unvisited_neighbor = []
-
-for q in range(2):
-    if q == 0:
-        maze_list = Maze_Creation()
-        setDistance(maze_list)
-        setDestination(maze_list)
-        
-    #After first iteration if it hasn't explored a cell, mark it as inaccessible
-    #Update corresponding neighboring cells to match walls    
-    else:
-        for r in range(16):
-            for c in range(16):
-                if (maze_list[r][c].Checked == False or maze_list[r][c].Available == False) and maze_list[r][c].Distance != 0:
-                    maze_list[r][c].Top = True
-                    maze_list[r][c].Left = True
-                    maze_list[r][c].Right = True
-                    maze_list[r][c].Bottom = True
-                    maze_list[r][c].Distance = 1000
-                elif maze_list[r][c].Checked == True :
-                    if c < 15:
-                        maze_list[r][c].Top = maze_list[r][c+1].Bottom
-                    if c > 0:
-                        maze_list[r][c].Bottom = maze_list[r][c-1].Top
-                    if r > 0:
-                        maze_list[r][c].Left = maze_list[r-1][c].Right
-                    if r < 15:
-                        maze_list[r][c].Right = maze_list[r+1][c].Left
-                maze_list[r][c].Checked = False
-                        
-
-               
-
-    
-    
-    """Initializes i, j - i corresponds to X position, j corresponds to Y,
-    counter increments after each move in the maze and gets assigned to the
-    latest cell after each move. """
+            if Maze.cell(i,j).available == True:
+                Maze.cell(i,j).set_checked(False)
     i = 0
     j = 0
     counter = 0
-    printMaze(maze_list, counter, i, j)
-    
-    
-    """Main loop of the solving algorithm, runs until it reaches one of the inner
-    4 cells"""  
-    while(maze_list[i][j].Distance !=0):
-        Path = ''
-        counter = counter +1                
-        maze_list[i][j].Count = counter
-        maze_list[i][j].Checked = True
-        printMaze(maze_list, counter, i, j)
-        time.sleep(.22)
-        Shortest = 1000
-        if maze_list[i][j] in unvisited_neighbor:
-            unvisited_neighbor.remove(maze_list[i][j])
-            
-        """Checks if there is a move to a cell that hasn't been explored, if there
-        is then it chooses the cell it can move to with the lowest distance from
-        the center, if there isn't it moves to the else so it can backtrack"""
-        if availableNeighbor(maze_list,i,j):
-            if i < 15:
-                if maze_list[i][j].Right !=True and maze_list[i+1][j].Checked !=True and maze_list[i+1][j].Available == True:
-                    Shortest = maze_list[i+1][j].Distance
-                    Temp = maze_list[i][j].Distance
-                    Path = 'right'
-            if i > 0:
-                if maze_list[i][j].Left !=True and maze_list[i-1][j].Checked !=True and maze_list[i-1][j].Available == True:
-                    Temp = maze_list[i-1][j].Distance 
-                    if Temp < Shortest:
-                        Shortest = Temp
-                        Path = 'left'
-            if j < 15:
-                if maze_list[i][j].Top !=True and maze_list[i][j+1].Checked !=True and maze_list[i][j+1].Available == True:
-                    Temp = maze_list[i][j+1].Distance
-                    if Temp < Shortest:
-                        Shortest = Temp
-                        Path = 'up'
-            if j > 0:
-                if maze_list[i][j].Bottom !=True and maze_list[i][j-1].Checked !=True and maze_list[i][j-1].Available == True:
-                    Temp = maze_list[i][j-1].Distance
-                    if Temp < Shortest:
-                        Shortest = Temp
-                        Path = 'down'
-                
-            if Path == 'up':
-                j = j+1
-            elif Path == 'down':
-                j = j-1
-            elif Path == 'right':
-                i = i +1
-            elif Path == 'left':
-                i = i -1
-            
-    
-    #If there wasnt an adjacent cell that wasnt explored, it will begin
-    #backtracking to the latest cell added to the stack, it makes backtracks
-    #according to the count assigned to each cell, moving to the available
-    #cell with the closest absolute value to the desired neighbor cell to the cell
-    #in the stack
-    
-        else:
-            while ((maze_list[i][j].x != unvisited_neighbor[-1].Neighbor_X) or (maze_list[i][j].y != unvisited_neighbor[-1].Neighbor_Y)):
-                time.sleep(.22)
-                Shortest = 1000
-                maze_list[i][j].Available = False
-                if maze_list[i][j].Right != True and maze_list[i+1][j].Available == True and abs(maze_list[i][j].Count - unvisited_neighbor[-1].Neighbor_Count) > abs(maze_list[i+1][j].Count - unvisited_neighbor[-1].Neighbor_Count):
-                    if (abs(maze_list[i+1][j].Count - unvisited_neighbor[-1].Neighbor_Count) < Shortest):
-                        Path = "right"
-                        Shortest = abs(maze_list[i+1][j].Count - unvisited_neighbor[-1].Neighbor_Count)
-                if maze_list[i][j].Left != True and maze_list[i-1][j].Available == True and abs(maze_list[i][j].Count - unvisited_neighbor[-1].Neighbor_Count) > abs(maze_list[i-1][j].Count- unvisited_neighbor[-1].Neighbor_Count):
-                    if (abs(maze_list[i-1][j].Count - unvisited_neighbor[-1].Neighbor_Count) < Shortest):
-                        Path = "left"
-                        Shortest = abs(maze_list[i-1][j].Count - unvisited_neighbor[-1].Neighbor_Count)
-                if maze_list[i][j].Top != True and maze_list[i][j+1].Available == True and abs(maze_list[i][j].Count - unvisited_neighbor[-1].Neighbor_Count) > abs(maze_list[i][j+1].Count- unvisited_neighbor[-1].Neighbor_Count):
-                    if (abs(maze_list[i][j+1].Count - unvisited_neighbor[-1].Neighbor_Count) < Shortest):
-                        Path = 'up'
-                        Shortest = abs(maze_list[i][j+1].Count - unvisited_neighbor[-1].Neighbor_Count)
-                if maze_list[i][j].Bottom != True and maze_list[i][j-1].Available == True and abs(maze_list[i][j].Count - unvisited_neighbor[-1].Neighbor_Count) > abs(maze_list[i][j-1].Count- unvisited_neighbor[-1].Neighbor_Count):
-                    if (abs(maze_list[i][j-1].Count - unvisited_neighbor[-1].Neighbor_Count) < Shortest):
-                        Path = "down"
-                        Shortest = abs(maze_list[i][j-1].Count - unvisited_neighbor[-1].Neighbor_Count)
-                else:
-                    print("error")
-                
-                    
-                if Path == 'right':
-                    i = i +1
-                
-                elif Path == 'left':
-                    i = i -1
-                elif Path == 'up':
-                    j = j+1
-                elif Path == 'down':
-                    j = j-1
-                        
-                    
-                #If it backtracks to the cell that added the cell to the stack, break
-                if(maze_list[i][j].x == unvisited_neighbor[-1].Neighbor_X) and (maze_list[i][j].y == unvisited_neighbor[-1].Neighbor_Y):
-                    maze_list[i][j].Checked = True
-                    if maze_list[i][j] in unvisited_neighbor:
-                        unvisited_neighbor.remove(maze_list[i][j])
-                    break
-                maze_list[i][j].Available = False #Marks backtracked cells as not available
-                counter = counter +1             
-                maze_list[i][j].Count = counter
-                maze_list[i][j].Checked = True
-                printMaze(maze_list, counter, i, j)
-            
-    
-    counter = counter +1                
-    maze_list[i][j].Count = counter
-    maze_list[i][j].Checked = True
-    printMaze(maze_list, counter, i, j)
-    time.sleep(.22)
-    Shortest = 1000
-    
-    
-
-
-                
-    printMaze(maze_list, counter, i, j)
+    if q == 0:
+        print(' ' * 32 + "|INITIAL MAZE|:")
+        Maze.print(10,q)
+    Maze.cell(i, j).set_checked(True)
+    Maze.cell(i, j).set_step(counter)
+   
+    while Maze.cell(i, j).distance != 0:
+        #***uncomment these to see progress***
+        #Maze.print(counter,q)
+        #time.sleep(0.22)
+        advance()
+    if q == 0:
+        print("\n" + ' ' * 32 + "|FIRST SOLVE|")
+        counter_One = counter
+        Maze.print(counter, q)
+        print(f"Cells traversed = {counter}")
+    else:
+        print("\n" + ' ' * 24 + "|EFFICIENT RUN - NO BACKTRACKING|")
+        Maze.print(counter, q)
+        execution_time = int((time.time() - start_time) * 1000)
+        print(f"Execution time = {execution_time} milliseconds !!!")
+        print(f"First run cells traversed = {counter_One}")
+        print(f"Efficient run cells traversed = {counter}")
+        print(f"Optimization = {counter_One-counter} Step(s)")
+        
+   
+  
