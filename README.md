@@ -8,15 +8,15 @@
   re-run using the same maze and with the knowledge from the last run will sovle the maze in fewer steps, provided some of the steps that
   it took to get to the center in the subsequent run were less-efficient paths that required backtracking. 
   
-**File Descriptions:** *More detailed description in comments of each file*
-  Flood - Runs the entirety of the program. *(Dependency on Maze.py, Cell.py)*. 
-  Maze - Generates randomized 16x16 maze, used by Flood. *(Dependency on Cell.py)
-  Cell.py - Creates class Cell which describes the attributes for each index in the 2-D struct array
+**File Descriptions:** *More detailed description in comments of each file*  
+  Flood - Runs the entirety of the program. *(Dependency on Maze.py, Cell.py)*.   
+  Maze - Generates randomized 16x16 maze, used by Flood. *(Dependency on Cell.py)  
+  Cell.py - Creates class Cell which describes the attributes for each index in the 2-D struct array  
   MazeGeneratorBuilder - Shows the process of maze construction in stepped movements, made for demonstrative / debugging purposes. (Also standalone).
   Note: MazeGeneratorBuilder works but doesnt utilize updated code.
 
   
-  **Outdated: 
+  **Outdated:** 
   MazeGenerator - Generates the maze for the Main_Flood program *(Dependency on Main_Flood)*.
   MazeGeneratorShowcase - Prints out a randomized maze each time it is ran, standalone program used only for demonstrative purposes. 
   (MazeGenerator + MazeGenerator Showcase were combined into Maze.py)
