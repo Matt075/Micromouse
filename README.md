@@ -1,5 +1,5 @@
-**Micromouse Maze Building/Solving algorithm:**
-  *Originall designed as testind bed for a physical model, information about the whole embedded project can be found at **()***
+**Micromouse Maze Building/Solving algorithm:**  
+  *Originall designed as testind bed for a physical model, information about the whole embedded project can be found at **(https://github.com/Matt075/Micromouse-Embedded)***  
   This program generates a randomized maze each time it is ran, then using the randomized maze, solves the maze in a series of steps 
   using only the information provided in the cells that have already been visited. The logic for the movements is dependent on the cells 
   pythagorean distance from the center cells (i.e when presented with an opportunity to move up, or right it will choose the cell with 
