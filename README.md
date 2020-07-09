@@ -16,8 +16,8 @@
   Note: MazeGeneratorBuilder works but doesnt utilize updated code.
 
   
-  **Outdated:** 
-  MazeGenerator - Generates the maze for the Main_Flood program *(Dependency on Main_Flood)*.
-  MazeGeneratorShowcase - Prints out a randomized maze each time it is ran, standalone program used only for demonstrative purposes. 
-  (MazeGenerator + MazeGenerator Showcase were combined into Maze.py)
+  **Outdated:**  
+  MazeGenerator - Generates the maze for the Main_Flood program *(Dependency on Main_Flood)*.  
+  MazeGeneratorShowcase - Prints out a randomized maze each time it is ran, standalone program used only for demonstrative purposes.  
+  *(MazeGenerator + MazeGenerator Showcase were combined into Maze.py)*
   
