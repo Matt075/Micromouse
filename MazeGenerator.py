@@ -1,242 +1,170 @@
-# -*- coding: utf-8 -*-
 """
-Created on Thu Mar  5 11:30:50 2020
-@author: Matt-HP
-"""
+Created on Fri Mar  14 06:23:19 2020
+@author: Matt Burns
+Description: Generates a randomized guarenteed solveable 16x16 cell maze through
+the use of randomized movements coupled with a stack of not yet visited cells.
 
-import time
+1. Generates a randomized number based on the avaliable moves (i.e non-explored cells and 
+movements that do not go out of bounds). Based upon the generated number it will move to
+the corresponding cell and mark it as visited, and also removing it from the available
+neighbors stack (cells that have been seen (adjacent) but not yet visited and destroying
+the "wall" between the current position and target cell).
+
+2. Once the cursor moves to a position where it has no legal moves (no non-visited neighbors
+or in bound moves) it uses its avaliable_neighbor stack to return to the position where
+it encountered a cell that it did not explore.
+
+3. Execution continues until the cursor has moved to every available cell in the array, in
+this way assuring that the exists at least 1 path from the start to the finish.
+"""
+from Cell import Cell
+
 import random
-import math
 
 
-unvisited_neighbor = []
-
-class Cell():
-    x = 0
-    y = 0
-    Checked = False
-    Top = True
-    Bottom = True
-    Left = True
-    Right = True
-    Distance = 0
-    Available = True
-    Count = 10000
-    Neighbor_X = 0
-    Neighbor_Y = 0
-    Neighbor_Count = 0
-
-#[checked?, up, bottom, left, right, distance to centre, available for reentry?]
-maze_list = [[Cell() for y in range(16)] for x in range(16)]
-visited_Stack = []
-
-def checked(list):
-	return list.Checked
-	
-def upWall(list):
-	return list.Top
-
-def bottomWall(list):
-	return list.Bottom
-
-def leftWall(list):
-	return list.Left
-	
-def rightWall(list):
-	return list.Right
-
-def distToCenter(list):
-	return list.Count
-
-def available(list):
-	return list.Available
-
-def printMaze(mazeMap):
-    #count =0
-    print("_____________________________________________________________________")
-    print("")
-    nextLine = ""
-    for k in range(16):
-        nextLine += ('-' * 3) + '+'
-    print( '+' + nextLine)
-    for i in reversed(range(16)):
-        nextLine = '|'
-        for j in range(16):
-            #count = count +1
-            if not available(mazeMap[j][i]):
-                nextLine += ' X '
-            elif checked(mazeMap[j][i]):
-                #nextLine += ' * '
-                nextLine += (' ' * 3)
-            else:
-                nextLine += (' ' *  3)
-            if rightWall(mazeMap[j][i]):
-                nextLine += '|'
-            else:
-                nextLine += ' '
-        print(nextLine)       
-        nextLine = '+'
-        for j in range(16):
-            if bottomWall(mazeMap[j][i]):
-                nextLine += ('-'  * 3) + '+'
-            else:
-                nextLine += (' ' * 3) +   '+'
-        print(nextLine)
-        
-        
-
-def availableNeighbor(mazeMap,i,j):
-    neighbor = False
-    count = 0
-  #  if j< 15: 
-   # if upWall(mazeMap[i][j]) == False and mazeMap[i][j+1].Checked == False:
-    if j < 15:
-        if mazeMap[i][j+1].Checked == False:    
-                neighbor = True
-                count = count +1
-                unvisited_neighbor.append(mazeMap[i][j+1])
-                       
-    if j > 0:
-        if mazeMap[i][j-1].Checked == False:    
-            #if bottomWall(mazeMap[i][j]) == False and mazeMap[i][j-1].Checked == False:
-                neighbor = True
-                count = count +1
-                unvisited_neighbor.append(mazeMap[i][j-1])
-                    
-    if i > 0:
-        if mazeMap[i-1][j].Checked == False:    
-            #if leftWall(mazeMap[i][j]) == False and mazeMap[i-1][j].Checked == False:
-                neighbor = True
-                count = count +1
-                unvisited_neighbor.append(mazeMap[i-1][j])
-                
-    if i <15:
-        if mazeMap[i+1][j].Checked == False:    
-            #if rightWall(mazeMap[i][j]) == False and mazeMap[i+1][j].Checked == False:
-                neighbor = True
-                count = count +1
-                unvisited_neighbor.append(mazeMap[i+1][j])
-                
-    return neighbor
-
-
-def Maze_Creation():        
-    #Sets outside walls
-    for i in range(16):
-        maze_list[i][0].Bottom = True
-        maze_list[15][i].Right = True
-        maze_list[0][i].Left = True
-    
-    
-    #Sets right walls equal to cells to the right left walls, 
-    #Sets Top walls equal to cells above below walls
+class Maze:
+    maze = [[Cell(x, y) for y in range(16)] for x in range(16)]
     for i in range(16):
         for j in range(16):
-            if i+1 < 16:
-                maze_list[i+1][j].Left = maze_list[i][j].Right 
-            if j+1 <16:
-                maze_list[i][j+1].Bottom = maze_list[i][j].Top     
-            maze_list[i][j].x = i
-            maze_list[i][j].y = j
-            
-    i = 0
-    j = 0
-    counter = 0
-    k = 0
-    printMaze(maze_list)
-    
-    while k < (len(maze_list)*len(maze_list)-1):
-        Path = []
-        #time.sleep(.5)
-        
-        #counter = counter +1                
-        #maze_list[i][j].Count = counter
-        maze_list[i][j].Checked = True
-        #printMaze(maze_list)
-        #if  len(unvisited_neighbor) !=0:
-        #   print(str(unvisited_neighbor[-1].x) + "," + str(unvisited_neighbor[-1].y))
-        #time.sleep(1)
-        #Shortest = 1000
-        if maze_list[i][j] in unvisited_neighbor:
-            unvisited_neighbor.remove(maze_list[i][j])
-        if availableNeighbor(maze_list,i,j):
-            visited_Stack.append(maze_list[i][j])
-            if i<15:
-                if maze_list[i+1][j].Checked != True:
-            #if maze_list[i][j].Right !=True and maze_list[i+1][j].Checked !=True:
-                ##Shortest = maze_list[i+1][j].Distance
-                ##Temp = maze_list[i][j].Distance
-                    Path.append('right')
-            if i >0:
-                if maze_list[i-1][j].Checked != True:
-            #if maze_list[i][j].Left !=True and maze_list[i-1][j].Checked !=True:
-                ##Temp = maze_list[i-1][j].Distance 
-                ##if Temp < Shortest:
-                   ## Shortest = Temp
-                    Path.append('left')
-            if j <15:
-                if maze_list[i][j+1].Checked != True:
-            #if maze_list[i][j].Top !=True and maze_list[i][j+1].Checked !=True:
-                ##Temp = maze_list[i][j+1].Distance
-                ##if Temp < Shortest:
-                ## Shortest = Temp
-                    Path.append('up')
-            if j >0:
-                if maze_list[i][j-1].Checked != True:
-            #if maze_list[i][j].Bottom !=True and maze_list[i][j-1].Checked !=True:
-                ##Temp = maze_list[i][j-1].Distance
-                ##if Temp < Shortest:
-                  ## Shortest = Temp
-                    Path.append('down')
-            
-            if len(Path) > 0:
-                destination = random.choice(Path)
-            
-            if destination == 'up':
-                maze_list[i][j].Top = False
-                maze_list[i][j+1].Bottom = False
-                j = j+1
-            elif destination == 'down':
-                maze_list[i][j].Bottom = False
-                maze_list[i][j-1].Top = False
-                j = j-1
-            elif destination == 'right':
-                maze_list[i][j].Right = False
-                maze_list[i+1][j].Left = False
-                i = i +1
-            elif destination == 'left':
-                maze_list[i][j].Left = False
-                maze_list[i-1][j].Right = False
-                i = i -1
-            k = k+1
-            
-        elif len(visited_Stack) !=0:
-                i = visited_Stack[-1].x
-                j = visited_Stack[-1].y 
-                visited_Stack.pop()
-    
-    
-    
-    maze_list[7][7].Top = False
-    maze_list[7][7].Right = False
-    
-    maze_list[7][8].Right = False
-    maze_list[7][8].Bottom = False
-    
-    maze_list[8][7].Top = False
-    maze_list[8][7].Left = False
-    
-    maze_list[8][8].Bottom = False
-    maze_list[8][8].Left = False
-    
-    #Sets right walls equal to cells to the right left walls, 
-    #Sets Top walls equal to cells above below walls
-    for i in range(16):
-        for j in range(16):
-            if i+1 < 16:
-                maze_list[i+1][j].Left = maze_list[i][j].Right 
-            if j+1 <16:
-                maze_list[i][j+1].Bottom = maze_list[i][j].Top
-            maze_list[i][j].Checked = False #Marks cells that were marked true from mazecreation algorithm back to false
-   
-    return(maze_list)
+            maze[i][j].set_north_wall(True)
+            maze[i][j].set_south_wall(True)
+            maze[i][j].set_west_wall(True)
+            maze[i][j].set_east_wall(True)
+    unvisited_stack = []
+
+    @classmethod
+    def cell(cls, x, y):
+        """ Return the cell at the given coordinate"""
+        return cls.maze[x][y]
+
+    @classmethod
+    def print(cls, counter, q):
+        print("_____________________________________________________________________")
+        print("")
+        nextLine = ""
+        for k in range(16):
+            nextLine += ('-' * (len(str(counter)) + 2)) + '+'
+        print( '+' + nextLine)
+        for j in reversed(range(16)):
+            nextLine = '|'
+            for i in range(16):
+                #count = count +1
+                if not cls.maze[i][j].available:
+                    if q == 0:
+                        nextLine += (' ' + 'X' + (' ' * (len(str(counter)))))
+                    else:
+                        nextLine += (' ' * (len(str(counter)) + 2))
+                elif cls.maze[i][j].checked:
+                    #nextLine += ' * '
+                    nextLine += (' ' + str(cls.maze[i][j].step) + (' ' * ((int(len(str(counter)) - len(str(cls.maze[i][j].step))))+1)))
+                else:
+                    nextLine += (' ' * (len(str(counter)) + 2))
+                if cls.maze[i][j].east_wall:
+                    nextLine += '|'
+                else:
+                    nextLine += ' '
+            print(nextLine)       
+            nextLine = '+'
+            for i in range(16):
+                if cls.maze[i][j].south_wall:
+                    nextLine += ('-' * (len(str(counter)) + 2)) + '+'
+                else:
+                    nextLine += (' ' * (len(str(counter)) + 2)) +   '+'
+            print(nextLine)
+
+
+    @classmethod
+    def available_neighbor(cls, i, j):
+        """ For use with creating the maze
+        Return whether there is an available neighbor
+        """
+        if j < 15 and not cls.maze[i][j+1].checked:
+            cls.unvisited_stack.append([i, j+1])
+            return True
+
+        if j > 0 and not cls.maze[i][j-1].checked:
+            cls.unvisited_stack.append([i, j-1])
+            return True
+
+        if i < 15 and not cls.maze[i+1][j].checked:
+            cls.unvisited_stack.append([i+1, j])
+            return True
+
+        if i > 0 and not cls.maze[i-1][j].checked:
+            cls.unvisited_stack.append([i-1, j])
+            return True
+
+        return False
+
+    @classmethod
+    def create(cls):
+        """ Create a random organic maze """
+        # Start square is bounded on three sides by walls. 
+        cls.maze[0][0].set_checked(True)
+        cls.maze[0][0].set_north_wall(False)
+        cls.maze[0][1].set_south_wall(False)
+
+        i = 0
+        j = 1
+        k = 1
+        visited_stack = []
+
+        while k < 255:  # 16*16 - 1
+            path = []
+            cls.maze[i][j].set_checked(True)
+            if [i, j] in cls.unvisited_stack:
+                cls.unvisited_stack.remove([i, j])
+            if cls.available_neighbor(i, j):
+                visited_stack.append([i, j])
+                if i < 15 and not cls.maze[i+1][j].checked:
+                    path.append("r")
+                if i > 0 and not cls.maze[i-1][j].checked:
+                    path.append("l")
+                if j < 15 and not cls.maze[i][j+1].checked:
+                    path.append("u")
+                if j > 0 and not cls.maze[i][j-1].checked:
+                    path.append("d")
+
+                destination = random.choice(path)
+                if destination == "u":
+                    cls.maze[i][j].set_north_wall(False)
+                    cls.maze[i][j+1].set_south_wall(False)
+                    j += 1
+                elif destination == "d":
+                    cls.maze[i][j].set_south_wall(False)
+                    cls.maze[i][j-1].set_north_wall(False)
+                    j -= 1
+                elif destination == "r":
+                    cls.maze[i][j].set_east_wall(False)
+                    cls.maze[i+1][j].set_west_wall(False)
+                    i += 1
+                else:
+                    cls.maze[i][j].set_west_wall(False)
+                    cls.maze[i-1][j].set_east_wall(False)
+                    i -= 1
+                k += 1
+
+            elif len(visited_stack) != 0:
+                i = visited_stack[-1][0]
+                j = visited_stack[-1][1]
+                visited_stack.pop()
+
+        cls.maze[7][7].set_north_wall(False)
+        cls.maze[7][7].set_east_wall(False)
+        cls.maze[7][8].set_east_wall(False)
+        cls.maze[7][8].set_south_wall(False)
+        cls.maze[8][7].set_north_wall(False)
+        cls.maze[8][7].set_west_wall(False)
+        cls.maze[8][8].set_south_wall(False)
+        cls.maze[8][8].set_west_wall(False)
+
+        for i in range(16):
+            for j in range(16):
+                cls.maze[i][j].set_checked(False)
+
+
+Maze.create()
+
+if __name__ == "__main__":
+    Maze.print(10, 0)
+
