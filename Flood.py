@@ -102,6 +102,7 @@ def check_area():
     while num < len(unchecked_list):
         x = unchecked_list[num][0]
         y = unchecked_list[num][1]
+      
         if Maze.cell(x, y).distance == 0 or not unchecked_available:
             break
         unchecked_available = False
@@ -148,11 +149,10 @@ def check_area():
 # i = x coordinate, j = y coordinate
 # - counter counts the steps taken after each move
 for q in range(2):
-    
     for i in range(16):
         for j in range(16):
             if Maze.cell(i,j).available == True:
-                Maze.cell(i,j).set_checked(False)
+                Maze.cell(i,j).set_checked(False)   
     i = 0
     j = 0
     counter = 0
@@ -182,4 +182,5 @@ for q in range(2):
         print(f"Optimization = {counter_One-counter} Step(s)")
         
    
-  
+    
+    
