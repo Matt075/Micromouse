@@ -20,7 +20,7 @@ this way assuring that the exists at least 1 path from the start to the finish.
 from Cell import Cell
 
 import random
-
+from colorama import Fore, Style
 
 class Maze:
     maze = [[Cell(x, y) for y in range(16)] for x in range(16)]
@@ -51,12 +51,17 @@ class Maze:
                 #count = count +1
                 if not cls.maze[i][j].available:
                     if q == 0:
-                        nextLine += (' ' + 'X' + (' ' * (len(str(counter)))))
+                        print(nextLine + ' ', end="")
+                        print(Fore.RED + '\033[1m' + 'X' + Style.RESET_ALL, end="")
+                        nextLine = (' ' * (len(str(counter))))
                     else:
                         nextLine += (' ' * (len(str(counter)) + 2))
                 elif cls.maze[i][j].checked:
-                    #nextLine += ' * '
-                    nextLine += (' ' + str(cls.maze[i][j].step) + (' ' * ((int(len(str(counter)) - len(str(cls.maze[i][j].step))))+1)))
+                    nextLine += ' '
+                    print(nextLine, end="")
+                    print(Fore.GREEN + '\033[1m' + str(cls.maze[i][j].step) + Style.RESET_ALL, end="")
+                    nextLine = ("" + (' ' * ((int(len(str(counter)) - len(str(cls.maze[i][j].step))))+1))) 
+                    
                 else:
                     nextLine += (' ' * (len(str(counter)) + 2))
                 if cls.maze[i][j].east_wall:
@@ -66,7 +71,12 @@ class Maze:
             print(nextLine)       
             nextLine = '+'
             for i in range(16):
-                if cls.maze[i][j].south_wall:
+                if i == 7 and j == 8:
+                    if cls.maze[i][j].south_wall:
+                        nextLine += ('-' * (len(str(counter)) + 2)) + '+'
+                    else:
+                        nextLine += (' ' * (len(str(counter)) + 2)) +  Fore.YELLOW + '\033[1m' + 'o' + Style.RESET_ALL
+                elif cls.maze[i][j].south_wall:
                     nextLine += ('-' * (len(str(counter)) + 2)) + '+'
                 else:
                     nextLine += (' ' * (len(str(counter)) + 2)) +   '+'
@@ -167,4 +177,3 @@ Maze.create()
 
 if __name__ == "__main__":
     Maze.print(10, 0)
-
